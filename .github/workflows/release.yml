@@ -25,6 +25,16 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
 
+      # The stock Python .gitignore excludes *.spec, which once left the build
+      # spec out of the checkout entirely. Fail here with a clear reason rather
+      # than inside PyInstaller.
+      - name: Check the build spec is present
+        run: |
+          if (-not (Test-Path packaging/teleprompter.spec)) {
+            throw "packaging/teleprompter.spec is missing from the checkout — is it gitignored?"
+          }
+        shell: pwsh
+
       - name: Draw the application icon
         run: python packaging/make_icon.py packaging/teleprompter.ico
 
