@@ -75,3 +75,24 @@ jobs:
           cache: pip
       - run: pip install pip-audit
       - run: pip-audit --strict --desc
+
+  # One aggregate check for branch protection to require. Naming the nine
+  # matrix jobs individually would break protection the moment the matrix
+  # changes; this stays valid because it only ever names the three job ids.
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [lint, test, audit]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify every job succeeded
+        run: |
+          echo "lint  = ${{ needs.lint.result }}"
+          echo "test  = ${{ needs.test.result }}"
+          echo "audit = ${{ needs.audit.result }}"
+          for result in "${{ needs.lint.result }}" "${{ needs.test.result }}" "${{ needs.audit.result }}"; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A required job did not succeed."
+              exit 1
+            fi
+          done
