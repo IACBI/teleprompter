@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  windows-executable:
+    name: Windows executable
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+
+      - name: Draw the application icon
+        run: python packaging/make_icon.py packaging/teleprompter.ico
+
+      - name: Build
+        run: pyinstaller --noconfirm --clean packaging/teleprompter.spec
+
+      - name: Check that the executable starts
+        run: |
+          Start-Process -FilePath dist\TelePrompter.exe -PassThru | ForEach-Object {
+            Start-Sleep -Seconds 12
+            if ($_.HasExited) { throw "TelePrompter.exe exited early with $($_.ExitCode)" }
+            Stop-Process -Id $_.Id -Force
+          }
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TelePrompter-windows
+          path: dist/TelePrompter.exe
+          if-no-files-found: error
+
+  wheel:
+    name: Wheel and sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TelePrompter-dist
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Attach to the release
+    needs: [windows-executable, wheel]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/TelePrompter-windows/TelePrompter.exe
+            artifacts/TelePrompter-dist/*
+          generate_release_notes: true

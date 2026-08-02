@@ -1,0 +1,16 @@
+# Normalise line endings so the repository is identical everywhere and
+# `ruff format --check` in CI agrees with a Windows working copy.
+* text=auto eol=lf
+
+*.py     text eol=lf diff=python
+*.md     text eol=lf
+*.toml   text eol=lf
+*.yml    text eol=lf
+*.spec   text eol=lf
+
+*.png    binary
+*.ico    binary
+*.pdf    binary
+
+# Keep generated screenshots out of diff noise and language statistics.
+assets/*.png linguist-generated=true

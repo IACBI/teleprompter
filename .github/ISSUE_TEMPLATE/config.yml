@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/IACBI/teleprompter/discussions
+    about: For anything that is not a bug report or a concrete feature request.
+  - name: Security vulnerability
+    url: https://github.com/IACBI/teleprompter/security/advisories/new
+    about: Please report privately rather than in a public issue.
+  - name: Documentation
+    url: https://github.com/IACBI/teleprompter/tree/main/docs
+    about: Script tags, keyboard shortcuts, privacy and architecture.

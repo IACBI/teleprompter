@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest something the application should be able to do
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describing what you were trying to do usually leads somewhere better
+        than describing the feature you had in mind — so please include both.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What were you trying to do?
+      description: The situation, in a couple of sentences. What got in the way?
+      placeholder: |
+        I read live inserts between video packages, and I need to jump to a
+        specific point in the script while the director is counting me in…
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: Your idea for solving it. A rough sketch is fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do instead today
+      description: >
+        Workarounds, other software, or a manual process. This says a lot about
+        how much a feature is worth.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      description: >
+        Two areas are deliberately excluded — the application has no network code
+        and no hardware control protocols, and both are properties worth keeping.
+      options:
+        - label: This does not require the application to use the network
+          required: true

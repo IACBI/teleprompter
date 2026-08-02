@@ -1,0 +1,100 @@
+name: Bug report
+description: Something behaves differently from how it should
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. The two things that help most are the script
+        that triggers it and the log file — everything else we can usually work
+        out from those.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+      placeholder: |
+        I pressed Play with a script containing [PAUSE] on the first line, and…
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      description: The shortest sequence that shows the problem.
+      placeholder: |
+        1. Open the app with an empty script
+        2. Paste the script below
+        3. Press Play
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: script
+    attributes:
+      label: The script that triggers it
+      description: >
+        If the problem depends on the script, paste the smallest version that
+        still shows it. Two lines beat a whole bulletin. Leave this out if the
+        script is confidential — say so and we will work around it.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: TelePrompter version
+      description: Shown on the Settings page, under About.
+      placeholder: "2.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you installed it
+      options:
+        - pip install .
+        - pip install -e ".[dev]"
+        - Windows .exe from a release
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and Python version
+      placeholder: "Windows 11 · Python 3.12.4"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: >
+        From **Settings → Diagnostics → Open log folder**. The last twenty lines
+        are usually enough. If the app showed a crash dialog, its "Show Details"
+        text is exactly what is needed.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this is not a duplicate
+          required: true
+        - label: I am on the latest version, or have said above why I cannot be
+          required: false
