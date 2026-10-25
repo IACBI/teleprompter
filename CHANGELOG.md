@@ -6,6 +6,10 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- README trimmed to English and Turkish.
+
 ### Security
 
 - **Note parsing is linear.** A line with many unmatched `[` brackets could take
