@@ -3,7 +3,7 @@
 Author: 𝓐.𝓒.𝓑
 """
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 __author__ = "A.C.B"
 # Shown in the UI; __author__ stays ASCII for packaging tools that read it.
 AUTHOR_DISPLAY = "𝓐.𝓒.𝓑"
