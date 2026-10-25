@@ -20,7 +20,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QPlainTextEdit, QWidget
 
-from ...core.script import CHAPTER_RE, NOTE_RE, PAUSE_RE
+from ...core.script import CHAPTER_RE, PAUSE_RE, find_notes
 from ...theme.tokens import SPACE, TYPE, Palette
 
 PLACEHOLDER = (
@@ -30,6 +30,10 @@ PLACEHOLDER = (
     "  [CHAPTER Title]    a heading you can jump to\n"
     "  [[note to self]]   private — appears only in the notes window"
 )
+
+
+def _utf16_len(text: str) -> int:
+    return len(text.encode("utf-16-le")) // 2
 
 
 class TagHighlighter(QSyntaxHighlighter):
@@ -54,13 +58,19 @@ class TagHighlighter(QSyntaxHighlighter):
         self.rehighlight()
 
     def highlightBlock(self, text: str) -> None:
+        # setFormat takes UTF-16 code units, but the parsers report code points:
+        # an emoji is one of the latter and two of the former.
         stripped = text.strip()
         if PAUSE_RE.match(stripped):
-            self.setFormat(0, len(text), self._pause)
+            self.setFormat(0, _utf16_len(text), self._pause)
         elif CHAPTER_RE.match(stripped):
-            self.setFormat(0, len(text), self._chapter)
-        for match in NOTE_RE.finditer(text):
-            self.setFormat(match.start(), match.end() - match.start(), self._note)
+            self.setFormat(0, _utf16_len(text), self._chapter)
+        # Advancing one cursor through the line keeps the conversion linear.
+        cp_pos = units = 0
+        for span in find_notes(text):
+            units += _utf16_len(text[cp_pos : span.start])
+            cp_pos = span.start
+            self.setFormat(units, _utf16_len(text[span.start : span.end]), self._note)
 
 
 class _LineNumberArea(QWidget):
