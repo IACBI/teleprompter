@@ -9,7 +9,7 @@ description = "A professional studio-grade teleprompter with a transparent overl
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
-authors = [{ name = "𝓐.𝓒.𝓑" }]
+authors = [{ name = "A.C.B" }]
 keywords = ["teleprompter", "prompter", "broadcast", "studio", "presentation", "qt"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

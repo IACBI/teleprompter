@@ -14,7 +14,7 @@ from PySide6.QtCore import QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QWidget
 
-from ... import __author__, __version__
+from ... import AUTHOR_DISPLAY, __version__
 from ...core.settings import UI_THEMES, Settings
 from ...services import logging_setup
 from ...services.hotkeys import BINDINGS, KEYBOARD_AVAILABLE
@@ -139,7 +139,7 @@ class SettingsPage(Page):
     def _about_card(self) -> Card:
         card = Card("About")
         card.add_row("Version", label(__version__, "mono"))
-        card.add_row("Author", label(__author__, "mono"))
+        card.add_row("Author", label(AUTHOR_DISPLAY, "mono"))
         card.add_row("Licence", label("MIT", "mono"))
         card.add(
             label(
