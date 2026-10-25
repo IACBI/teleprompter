@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from teleprompter.core.layout import (
     MeasureCache,
     break_long_word,
@@ -126,3 +128,11 @@ def test_line_origin_respects_alignment():
 def test_line_origin_never_crosses_the_margin():
     assert line_origin_x(900, "center", 500, 40) == 40
     assert line_origin_x(900, "right", 500, 40) == 40
+
+
+def test_a_multi_megabyte_token_splits_in_linear_time():
+    word = "x" * 4_000_000
+    start = time.perf_counter()
+    pieces = break_long_word(word, 100, len)
+    assert time.perf_counter() - start < 2.0
+    assert "".join(pieces) == word
