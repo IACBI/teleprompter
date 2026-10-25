@@ -6,6 +6,10 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-10-26
+
+A security and reliability update. No settings or script formats change.
+
 ### Changed
 
 - README trimmed to English and Turkish.
