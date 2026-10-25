@@ -84,7 +84,7 @@ jobs:
           cache: pip
       - run: pip install pip-audit
       - name: Audit runtime dependencies
-        run: pip-audit --strict --desc .
+        run: pip-audit --strict --desc on .
       # Environment mode cannot be used here: --strict turns the project's own
       # editable install into a fatal skip. Freezing the rest and auditing that
       # list covers the dev tools (pytest, ruff, mypy, pyinstaller) without it.
