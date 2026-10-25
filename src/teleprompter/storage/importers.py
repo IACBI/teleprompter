@@ -8,7 +8,7 @@ exception.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,6 +16,9 @@ from pathlib import Path
 #: mis-clicked video file cannot exhaust memory.
 MAX_TEXT_BYTES = 25 * 1024 * 1024
 MAX_PDF_PAGES = 2000
+#: Checked on the file itself, before any page is decoded. Looser than the text
+#: limit because PDFs carry fonts and images that never reach the script.
+MAX_PDF_FILE_BYTES = 100 * 1024 * 1024
 
 #: Byte-order marks checked before the encoding probe, because Latin-1 would
 #: otherwise "successfully" decode UTF-16 into garbage.
@@ -37,7 +40,8 @@ _UNAMBIGUOUS_ENCODINGS = frozenset({"utf-8", "utf-8-sig", "utf-16", "utf-32", "p
 
 _BINARY_SNIFF_BYTES = 8192
 
-PdfReader = Callable[[Path], list[str]]
+#: Yields one string per page. A generator, so the text cap can stop extraction early.
+PdfReader = Callable[[Path], Iterable[str]]
 
 
 @dataclass(frozen=True)
@@ -97,7 +101,7 @@ def decode_bytes(raw: bytes) -> tuple[str, str] | None:
     return None
 
 
-def _default_pdf_reader(path: Path) -> list[str]:
+def _default_pdf_reader(path: Path) -> Iterator[str]:
     import fitz
 
     doc = fitz.open(str(path))
@@ -106,9 +110,34 @@ def _default_pdf_reader(path: Path) -> list[str]:
             raise ValueError(
                 f"This PDF has {doc.page_count} pages; the import limit is {MAX_PDF_PAGES}."
             )
-        return [page.get_text() for page in doc]
+        for page in doc:
+            yield page.get_text()
     finally:
         doc.close()
+
+
+def _join_pages(pages: Iterable[str]) -> str:
+    """Join page texts, stopping as soon as the result would exceed the text limit.
+
+    Raising mid-document means the rest of the file is never extracted. The
+    separator is counted so the total matches the joined string's byte size.
+    """
+    parts: list[str] = []
+    total = 0
+    try:
+        for page in pages:
+            total += len(page.encode("utf-8", "replace")) + (2 if parts else 0)
+            if total > MAX_TEXT_BYTES:
+                raise ValueError(
+                    f"This PDF has more text than the {human_size(MAX_TEXT_BYTES)} import limit."
+                )
+            parts.append(page)
+    finally:
+        # Close a generator reader now so its PDF handle doesn't wait for GC.
+        close = getattr(pages, "close", None)
+        if close is not None:
+            close()
+    return "\n\n".join(parts)
 
 
 def pdf_available() -> bool:
@@ -126,13 +155,23 @@ def read_pdf(path: Path, reader: PdfReader | None = None) -> ImportResult:
             error="Reading PDF files needs PyMuPDF.\n\nInstall it with:  pip install PyMuPDF"
         )
     try:
-        pages = (reader or _default_pdf_reader)(path)
+        size = path.stat().st_size
+    except OSError as exc:
+        return ImportResult(error=f"This file could not be opened.\n\n{exc}")
+    if size > MAX_PDF_FILE_BYTES:
+        return ImportResult(
+            error=f"This PDF is {human_size(size)}, larger than the "
+            f"{human_size(MAX_PDF_FILE_BYTES)} import limit."
+        )
+
+    try:
+        text = _join_pages((reader or _default_pdf_reader)(path))
     except ValueError as exc:
         return ImportResult(error=str(exc))
     except Exception as exc:
         return ImportResult(error=f"This PDF could not be read.\n\n{exc}")
 
-    text = normalize_newlines("\n\n".join(pages).strip())
+    text = normalize_newlines(text.strip())
     if not text:
         return ImportResult(
             error="No selectable text was found in this PDF.\n"

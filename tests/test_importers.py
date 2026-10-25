@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from teleprompter.storage import importers
 from teleprompter.storage.importers import (
     decode_bytes,
     human_size,
@@ -129,3 +130,40 @@ def test_normalize_newlines_is_idempotent():
 )
 def test_human_size(size, text):
     assert human_size(size) == text
+
+
+def test_pdf_text_is_capped_across_pages(tmp_path):
+    path = write(tmp_path, "huge.pdf", b"%PDF-1.4 fake")
+    pages_read = 0
+
+    def many_large_pages(_p):
+        nonlocal pages_read
+        for _ in range(40):  # 40 MiB of text against a 25 MiB cap
+            pages_read += 1
+            yield "a" * (1024 * 1024)
+
+    result = read_script_file(path, pdf_reader=many_large_pages)
+    assert not result.ok
+    assert "import limit" in result.error
+    # Extraction stops once the cap is passed rather than reading every page.
+    assert pages_read < 40
+
+
+def test_pdf_under_the_text_cap_is_joined_in_full(tmp_path):
+    path = write(tmp_path, "deck.pdf", b"%PDF-1.4 fake")
+    pages = ["x" * (1024 * 1024)] * 10
+    result = read_script_file(path, pdf_reader=lambda _p: pages)
+    assert result.ok
+    assert len(result.text) == 10 * 1024 * 1024 + 9 * 2
+
+
+def test_a_pdf_over_the_file_size_limit_is_refused_before_it_is_opened(tmp_path, monkeypatch):
+    monkeypatch.setattr(importers, "MAX_PDF_FILE_BYTES", 1000)
+    path = write(tmp_path, "big.pdf", b"%PDF" + b"0" * 5000)
+
+    def never_opened(_p):
+        raise AssertionError("the reader must not run for an oversized PDF")
+
+    result = read_script_file(path, pdf_reader=never_opened)
+    assert not result.ok
+    assert "import limit" in result.error
