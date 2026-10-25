@@ -65,6 +65,10 @@ Out of scope:
   generation, and an unreadable file is reported rather than silently discarded.
 - Script imports are bounded: 25 MB of text, 2000 PDF pages, with binary
   detection before decoding.
+- PDF files over 100 MB are refused before they are opened, and extraction stops
+  once the text passes the 25 MB limit.
+- Note parsing runs in linear time, so a crafted line cannot make the editor's
+  repaint take quadratic time.
 - User-authored text is rendered as plain text everywhere it is displayed, so
   markup in a script cannot be interpreted or used to load local resources.
 - Callbacks from the keyboard hook and the audio thread are marshalled to the GUI

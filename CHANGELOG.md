@@ -4,6 +4,31 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **Note parsing is linear.** A line with many unmatched `[` brackets could take
+  quadratic time, and the editor parses on every repaint. Notes are now found in
+  one pass.
+- **PDF imports are refused early.** Files over 100 MB are rejected before they
+  are opened, and extraction stops as soon as the text passes the 25 MB import
+  limit, so the rest of the document is never read.
+- **Release and CI workflows are hardened.** Checkouts no longer keep the
+  repository token in `.git/config`, and the development dependencies are audited
+  alongside the runtime ones.
+
+### Fixed
+
+- **Tags after an emoji are highlighted in the right place.** The script editor
+  counted characters where Qt counts UTF-16 units, so highlighting drifted after
+  any character outside the Basic Multilingual Plane, such as most emoji.
+
+### Performance
+
+- **Very long unbreakable words wrap much faster.** The layout no longer copies
+  the rest of the word after every cut.
+
 ## [2.0.0] — 2026-08-02
 
 A full rebuild. The application does everything the 1.x single file did, and the
