@@ -100,35 +100,36 @@ def break_long_word(word: str, max_width: int, measure: Measure) -> list[str]:
     if max_width <= 0 or not word:
         return [word]
 
+    # Walk an index rather than re-slicing the remainder: copying the tail after
+    # every piece made a 16 MB token take tens of seconds.
     pieces: list[str] = []
-    remaining = word
-    while remaining:
-        if measure(remaining) <= max_width:
-            pieces.append(remaining)
-            break
+    start = 0
+    while start < len(word):
         if len(pieces) >= MAX_WORD_PIECES:
             # Safety valve: keep the text intact rather than splitting forever.
-            pieces.append(remaining)
+            pieces.append(word[start:])
             break
+
+        available = len(word) - start
 
         # Exponential probe for an upper bound that does not fit.
         low, high = 1, 2
-        while high < len(remaining) and measure(remaining[:high]) <= max_width:
+        while high < available and measure(word[start : start + high]) <= max_width:
             low = high
             high *= 2
-        high = min(high, len(remaining))
+        high = min(high, available)
 
         # Binary search for the longest prefix that fits.
         while low < high:
             mid = (low + high + 1) // 2
-            if measure(remaining[:mid]) <= max_width:
+            if measure(word[start : start + mid]) <= max_width:
                 low = mid
             else:
                 high = mid - 1
 
         cut = max(1, low)  # always make progress, even if a single glyph overflows
-        pieces.append(remaining[:cut])
-        remaining = remaining[cut:]
+        pieces.append(word[start : start + cut])
+        start += cut
 
     return pieces
 
