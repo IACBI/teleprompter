@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import random
+import re
+import time
+
 import pytest
 
 from teleprompter.core.script import (
     BlockKind,
     count_words,
     extract_notes,
+    find_notes,
     parse_script,
 )
+
+#: The pattern find_notes replaced. Kept here as the reference it must agree with.
+REFERENCE_NOTE_RE = re.compile(r"\[\[(.+?)\]\]", re.DOTALL)
 
 
 def test_empty_text_parses_to_empty_script():
@@ -98,3 +106,55 @@ def test_punctuation_only_tokens_are_not_words():
 def test_source_line_survives_parsing():
     script = parse_script("a\nb\nc")
     assert [b.source_line for b in script.blocks] == [0, 1, 2]
+
+
+def _reference_spans(line):
+    return [(m.start(), m.end(), m.group(1)) for m in REFERENCE_NOTE_RE.finditer(line)]
+
+
+def _scanner_spans(line):
+    return [(s.start, s.end, s.text) for s in find_notes(line)]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "",
+        "[[]]",
+        "[[]]]",
+        "[[[]]",
+        "[[[]]]",
+        "[[a]]]]",
+        "[[ ]]",
+        "[[\n]]",
+        "a[[b\nc]]d",
+        "[[a]] [[b]]",
+        "[[a][b]]",
+        "[[a]",
+        "[a]]",
+        "[[[[]]",
+        "[[]][[]]",
+        "x [[ ]] y [[z",
+    ],
+)
+def test_find_notes_agrees_with_the_reference_pattern(line):
+    assert _scanner_spans(line) == _reference_spans(line)
+
+
+def test_find_notes_agrees_with_the_reference_pattern_on_random_lines():
+    rng = random.Random(20260101)
+    for _ in range(20_000):
+        line = "".join(rng.choice("[]a \n") for _ in range(rng.randint(0, 40)))
+        assert _scanner_spans(line) == _reference_spans(line), line
+
+
+def test_unmatched_brackets_scan_in_linear_time():
+    start = time.perf_counter()
+    assert extract_notes("[" * 100_000) == ("[" * 100_000, None)
+    assert time.perf_counter() - start < 2.0
+
+
+def test_repeated_openers_scan_in_linear_time():
+    start = time.perf_counter()
+    extract_notes("[[" * 100_000)
+    assert time.perf_counter() - start < 2.0

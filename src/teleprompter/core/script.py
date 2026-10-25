@@ -16,10 +16,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import NamedTuple
 
 PAUSE_TAG = "[PAUSE]"
 
-NOTE_RE = re.compile(r"\[\[(.+?)\]\]", re.DOTALL)
 PAUSE_RE = re.compile(r"^\[\s*PAUSE\s*\]$", re.IGNORECASE)
 CHAPTER_RE = re.compile(r"^\[\s*CHAPTER\b\s*(.*?)\s*\]$", re.IGNORECASE)
 
@@ -93,14 +93,54 @@ class Script:
 EMPTY_SCRIPT = Script(raw="", blocks=(), chapters=(), word_count=0)
 
 
+class NoteSpan(NamedTuple):
+    """One ``[[...]]`` note: ``line[start:end]`` is the whole tag, ``text`` the inside."""
+
+    start: int
+    end: int
+    text: str
+
+
+def find_notes(line: str) -> list[NoteSpan]:
+    """Locate every ``[[...]]`` note in ``line``, scanning left to right.
+
+    Matches what ``\\[\\[(.+?)\\]\\]`` (DOTALL) finds, but in linear time. A regex
+    retries from every unmatched ``[`` and rescans to the end of the line each
+    time, which is quadratic: the editor runs this on every repaint.
+    """
+    spans: list[NoteSpan] = []
+    pos = 0
+    while True:
+        open_at = line.find("[[", pos)
+        if open_at == -1:
+            break
+        # The closer must come after at least one character, so search past the opener.
+        close_at = line.find("]]", open_at + 3)
+        if close_at == -1:
+            # No closer after this opener means none after any later opener either.
+            break
+        end = close_at + 2
+        spans.append(NoteSpan(open_at, end, line[open_at + 2 : close_at]))
+        pos = end
+    return spans
+
+
 def extract_notes(line: str) -> tuple[str, str | None]:
     """Split a raw line into (visible text, joined note or None).
 
     Removing a mid-sentence note leaves a gap, so whitespace is collapsed —
     otherwise ``Block.text`` would carry double spaces the reader never typed.
     """
-    notes = [m.strip() for m in NOTE_RE.findall(line)]
-    visible = " ".join(NOTE_RE.sub(" ", line).split())
+    spans = find_notes(line)
+    notes = [span.text.strip() for span in spans]
+    parts: list[str] = []
+    last = 0
+    for span in spans:
+        parts.append(line[last : span.start])
+        parts.append(" ")
+        last = span.end
+    parts.append(line[last:])
+    visible = " ".join("".join(parts).split())
     note = NOTE_SEPARATOR.join(n for n in notes if n) or None
     return visible, note
 
